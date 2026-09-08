@@ -6,6 +6,8 @@ import {
   Plus, Minus, Trash2, Check, AlertCircle, ArrowRight, MapPin, Phone, Mail, Share2,
 } from 'lucide-react'
 import { bikes, fmt, waLink, WA_DISPLAY, type BikeItem } from '../data'
+
+export const logoUrl = `${import.meta.env.BASE_URL}logo.jpeg`
 import { useShop } from '../store'
 
 // Navigasi antar-page + scroll ke section di Beranda
@@ -39,7 +41,7 @@ export function Header() {
     <header className="sticky top-0 z-40 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-zinc-200/70 dark:border-zinc-800">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 h-[64px] flex items-center gap-3">
         <a href="#/" onClick={e => { e.preventDefault(); goPage('/') }} className="flex items-center gap-2.5">
-          <img src="/logo.jpeg" alt="Gowes Point Langsa" className="w-9 h-9 rounded-xl object-cover shadow-md bg-white" />
+          <img src={logoUrl} alt="Gowes Point Langsa" className="w-9 h-9 rounded-xl object-cover shadow-md bg-white" />
           <span className="hidden sm:block font-extrabold text-[16px] tracking-tight leading-none">Gowes Point<br /><span className="text-emerald-600 font-bold text-[12px] tracking-widest uppercase">Langsa</span></span>
         </a>
         <nav className="hidden lg:flex items-center gap-0.5 ml-4 text-[13px] font-medium whitespace-nowrap">
@@ -91,7 +93,7 @@ export function Footer() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
           <div>
             <div className="flex items-center gap-2.5 text-white">
-              <img src="/logo.jpeg" alt="Gowes Point Langsa" className="w-9 h-9 rounded-xl object-cover bg-white" />
+              <img src={logoUrl} alt="Gowes Point Langsa" className="w-9 h-9 rounded-xl object-cover bg-white" />
               <span className="font-extrabold leading-none">Gowes Point<br /><span className="text-emerald-400 text-xs tracking-widest">LANGSA</span></span>
             </div>
             <p className="text-sm leading-relaxed mt-3 text-zinc-400">Sewa sepeda mudah, nyaman, dan terjangkau untuk menikmati Kota Langsa dengan dua roda.</p>
