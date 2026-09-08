@@ -5,7 +5,7 @@ import {
   Bike, Search, Menu, X, Sun, Moon, MessageCircle, ShoppingBag,
   Plus, Minus, Trash2, Check, AlertCircle, ArrowRight, MapPin, Phone, Mail, Share2,
 } from 'lucide-react'
-import { bikes, fmt, waLink, WA_DISPLAY, type BikeItem } from '../data'
+import { bikes, fmt, waLink, WA_DISPLAY, PACKAGES, packageById, slotOf, type BikeItem } from '../data'
 
 export const logoUrl = `${import.meta.env.BASE_URL}logo.jpeg`
 import { useShop } from '../store'
@@ -130,7 +130,7 @@ export function Footer() {
         </div>
         <div className="border-t border-white/10 mt-10 pt-6 flex flex-wrap justify-between gap-3 text-xs text-zinc-500">
           <span>© {new Date().getFullYear()} Gowes Point Langsa. Seluruh hak cipta dilindungi.</span>
-          <span>Dibuat dengan ♥ di Kota Langsa, Aceh</span>
+          <span>Dibuat dengan ♥ di Kota Langsa, Aceh • <a href="#/admin/login" className="hover:text-zinc-300">Admin</a></span>
         </div>
       </div>
     </footer>
@@ -221,13 +221,13 @@ export function CartSheet() {
                     <img src={b.gambar} alt={b.nama} className="w-16 h-16 rounded-xl object-cover shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-extrabold truncate">{b.nama}</div>
-                      <div className="text-xs text-zinc-500">{fmt(b.hargaJam)}/jam • {c.durasi} jam</div>
+                      <div className="text-xs text-zinc-500">{packageById(c.paket).label} • {fmt(packageById(c.paket).price)}</div>
                       <div className="flex items-center gap-2 mt-2">
-                        <button onClick={() => setCart(v => v.map(x => x.id === c.id ? { ...x, qty: Math.max(1, x.qty - 1) } : x))} aria-label="Kurangi" className="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center"><Minus className="w-3 h-3" /></button>
+                        <button onClick={() => setCart(v => v.map(x => x.id === c.id && x.paket === c.paket ? { ...x, qty: Math.max(1, x.qty - 1) } : x))} aria-label="Kurangi" className="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center"><Minus className="w-3 h-3" /></button>
                         <span className="text-sm font-extrabold w-8 text-center">{c.qty}</span>
-                        <button onClick={() => setCart(v => v.map(x => x.id === c.id ? { ...x, qty: Math.min(6, x.qty + 1) } : x))} aria-label="Tambah" className="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center"><Plus className="w-3 h-3" /></button>
-                        <select value={c.durasi} onChange={e => setCart(v => v.map(x => x.id === c.id ? { ...x, durasi: Number(e.target.value) } : x))} aria-label="Durasi" className="ml-auto text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-full px-2 py-1">
-                          {[1, 2, 3, 4, 6, 8, 12, 24].map(h => <option key={h} value={h}>{h} jam</option>)}
+                        <button onClick={() => setCart(v => v.map(x => x.id === c.id && x.paket === c.paket ? { ...x, qty: Math.min(6, x.qty + 1) } : x))} aria-label="Tambah" className="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center"><Plus className="w-3 h-3" /></button>
+                        <select value={c.paket} onChange={e => setCart(v => v.map(x => x.id === c.id && x.paket === c.paket ? { ...x, paket: e.target.value } : x))} aria-label="Paket" className="ml-auto text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-full px-2 py-1 max-w-[110px]">
+                          {PACKAGES.map(p => <option key={p.id} value={p.id}>{p.label} • {fmt(p.price)}</option>)}
                         </select>
                       </div>
                     </div>
@@ -242,7 +242,7 @@ export function CartSheet() {
                 <button onClick={() => {
                   const first = cart[0]
                   setCartOpen(false)
-                  nav('/pemesanan', { state: { sepeda: first.id, durasi: String(first.durasi) } })
+                  nav('/pemesanan', { state: { sepeda: first.id, paket: first.paket } })
                 }} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 rounded-full">Checkout • {fmt(cartTotal)} →</button>
                 <button onClick={() => setCart([])} className="w-full text-xs font-bold underline text-zinc-500">Kosongkan keranjang</button>
               </div>
@@ -256,14 +256,18 @@ export function CartSheet() {
 
 // Drawer detail + wizard waktu (dipakai Beranda)
 export function BikeDrawer({ bike, onClose }: { bike: BikeItem; onClose: () => void }) {
-  const { addCart, setCartOpen } = useShop()
+  const { addCart, setCartOpen, availOf, isAvailable, unitsFree, pushToast } = useShop()
+  const ready = isAvailable(bike.id)
   const nav = useNavigate()
   const [tgl, setTgl] = useState(() => new Date().toISOString().slice(0, 10))
   const [jam, setJam] = useState('08:00')
-  const [durasi, setDurasi] = useState(2)
+  const [paket, setPaket] = useState('2jam')
   const [qty, setQty] = useState(1)
   const [step, setStep] = useState<1 | 2>(1)
-  const total = bike.hargaJam * durasi * qty
+  const total = packageById(paket).price * qty
+  const slot = slotOf(jam, paket)
+  const slotFree = unitsFree(bike.id, tgl, slot.start, slot.end).length
+  const slotFull = ready && slotFree === 0
 
   return (
     <>
@@ -272,7 +276,7 @@ export function BikeDrawer({ bike, onClose }: { bike: BikeItem; onClose: () => v
         <div className="h-[220px] relative shrink-0">
           <img src={bike.gambar} alt={bike.nama} className="w-full h-full object-cover" />
           <button onClick={onClose} aria-label="Tutup" className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/90 backdrop-blur grid place-items-center shadow"><X className="w-5 h-5" /></button>
-          <span className={`absolute bottom-4 left-4 text-xs font-bold px-3 py-1.5 rounded-full ${bike.status === 'Tersedia' ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>{bike.status}</span>
+          <span className={`absolute bottom-4 left-4 text-xs font-bold px-3 py-1.5 rounded-full ${ready ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>{ready ? `Tersedia • ${availOf(bike.id)} unit` : 'Sedang Disewa'}</span>
         </div>
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
           <div className="flex items-center gap-2">
@@ -317,15 +321,17 @@ export function BikeDrawer({ bike, onClose }: { bike: BikeItem; onClose: () => v
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <label className="space-y-1 text-xs">
-                <span className="font-medium">Durasi (jam)</span>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setDurasi(d => Math.max(1, d - 1))} className="w-9 h-9 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center">−</button>
-                  <span className="flex-1 text-center font-bold py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800">{durasi} jam</span>
-                  <button onClick={() => setDurasi(d => Math.min(24, d + 1))} className="w-9 h-9 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center">+</button>
+              <div className="space-y-1 text-xs col-span-2">
+                <span className="font-medium">Paket sewa</span>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {PACKAGES.map(p => (
+                    <button key={p.id} onClick={() => setPaket(p.id)} className={`py-2 px-1 rounded-xl text-xs font-bold border ${paket === p.id ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-zinc-900' : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700'}`}>
+                      {p.label}<span className="block font-medium opacity-70">{fmt(p.price)}</span>
+                    </button>
+                  ))}
                 </div>
-              </label>
-              <label className="space-y-1 text-xs">
+              </div>
+              <label className="space-y-1 text-xs col-span-2">
                 <span className="font-medium">Jumlah sepeda</span>
                 <div className="flex items-center gap-2">
                   <button onClick={() => setQty(q => Math.max(1, q - 1))} className="w-9 h-9 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center">−</button>
@@ -336,29 +342,41 @@ export function BikeDrawer({ bike, onClose }: { bike: BikeItem; onClose: () => v
             </div>
 
             <div className="bg-zinc-900 dark:bg-zinc-800 text-white rounded-2xl p-4 space-y-2">
-              <div className="flex justify-between text-sm text-zinc-400"><span>{fmt(bike.hargaJam)} × {durasi} jam × {qty} unit</span><span>{fmt(total)}</span></div>
+              <div className="flex justify-between text-sm text-zinc-400"><span>{packageById(paket).label} × {qty} unit</span><span>{fmt(total)}</span></div>
               <div className="flex justify-between font-extrabold text-lg"><span>Total</span><span className="text-emerald-400">{fmt(total)}</span></div>
               <div className="text-[11px] text-zinc-500">Belum termasuk deposit identitas. Pembayaran di lokasi.</div>
             </div>
 
+            {slotFull ? (
+              <div className="flex items-start gap-2 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-2xl px-4 py-3 text-sm">
+                <AlertCircle className="w-4 h-4 text-rose-500 mt-0.5 shrink-0" />
+                <span className="text-rose-700 dark:text-rose-200"><b>Stok habis di jam ini</b> — {bike.nama} penuh pada {tgl} pukul {jam}. Coba tanggal, jam, atau paket lain.</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl px-4 py-3 text-sm">
+                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="text-emerald-700 dark:text-emerald-200">Sisa <b>{slotFree} unit</b> pada jadwal ini.</span>
+              </div>
+            )}
+
             <div className="flex gap-3">
               <button onClick={onClose} className="flex-1 py-3 rounded-full border border-zinc-200 dark:border-zinc-700 font-semibold text-sm">Tutup</button>
               {step === 1 ? (
-                <button disabled={bike.status !== 'Tersedia'} onClick={() => setStep(2)} className="flex-1 py-3 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold text-sm hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-1.5">
+                <button disabled={!ready || slotFull} onClick={() => { if (slotFull) { pushToast('Stok habis di jam tersebut — pilih jam lain', 'error'); return } setStep(2) }} className="flex-1 py-3 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold text-sm hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-1.5">
                   Lanjut ringkasan <ArrowRight className="w-4 h-4" />
                 </button>
               ) : (
-                <button disabled={bike.status !== 'Tersedia'} onClick={() => { addCart(bike.id, durasi, qty); onClose(); setCartOpen(true) }} className="flex-1 py-3 rounded-full bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 disabled:opacity-40 flex items-center justify-center gap-1.5">
+                <button disabled={!ready || slotFull} onClick={() => { addCart(bike.id, paket, qty); onClose(); setCartOpen(true) }} className="flex-1 py-3 rounded-full bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 disabled:opacity-40 flex items-center justify-center gap-1.5">
                   Masuk keranjang <ShoppingBag className="w-4 h-4" />
                 </button>
               )}
             </div>
             {step === 2 && (
-              <button onClick={() => { onClose(); nav('/pemesanan', { state: { sepeda: bike.id, tgl, jam, durasi: String(durasi) } }) }} className="w-full py-2.5 text-sm underline font-bold">
-                Atau langsung isi formulir →
+              <button onClick={() => { addCart(bike.id, paket, qty); onClose(); nav('/pemesanan', { state: { tgl, jam } }) }} className="w-full py-2.5 text-sm underline font-bold">
+                Lanjut isi formulir →
               </button>
             )}
-            {bike.status !== 'Tersedia' && <p className="text-xs text-amber-600 flex items-center gap-1 justify-center"><AlertCircle className="w-3 h-3" /> Sepeda sedang disewa — pilih sepeda lain.</p>}
+            {!ready && <p className="text-xs text-amber-600 flex items-center gap-1 justify-center"><AlertCircle className="w-3 h-3" /> Sepeda sedang disewa — pilih sepeda lain.</p>}
           </div>
         </div>
       </motion.div>

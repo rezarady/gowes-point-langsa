@@ -6,7 +6,7 @@ import {
   ArrowRight, Sparkles, Navigation, Heart, Zap, Calendar, Users, Bike,
   ShoppingBag, Heart as HeartIcon, Eye, Filter, ArrowUpRight, Phone,
 } from 'lucide-react'
-import { bikes, stokOf, ruteList, testi, faqs, fmt, waLink, WA_DISPLAY, type BikeType, type BikeItem } from '../data'
+import { bikes, ruteList, testi, faqs, fmt, waLink, WA_DISPLAY, type BikeType, type BikeItem } from '../data'
 import { useShop } from '../store'
 import { BikeDrawer, useGoSection } from '../components/chrome'
 
@@ -14,7 +14,7 @@ export default function Beranda() {
   const reduce = useReducedMotion()
   const loc = useLocation()
   const go = useGoSection()
-  const { wish, toggleWish, addCart, live } = useShop()
+  const { wish, toggleWish, addCart, live, availOf, isAvailable } = useShop()
 
   // scroll dari navigasi antar-page
   useEffect(() => {
@@ -50,13 +50,13 @@ export default function Beranda() {
     let r = bikes.filter(b => {
       if (q && !(`${b.nama} ${b.jenis}`.toLowerCase().includes(q.toLowerCase()))) return false
       if (jenisFilter !== 'Semua' && b.jenis !== jenisFilter) return false
-      if (availFilter === 'Tersedia' && b.status !== 'Tersedia') return false
+      if (availFilter === 'Tersedia' && !isAvailable(b.id)) return false
       if (b.hargaJam < priceRange[0] || b.hargaJam > priceRange[1]) return false
       return true
     })
     r = [...r].sort((a, b) => sort === 'termurah' ? a.hargaJam - b.hargaJam : b.hargaJam - a.hargaJam)
     return r
-  }, [q, jenisFilter, availFilter, priceRange, sort])
+  }, [q, jenisFilter, availFilter, priceRange, sort, isAvailable])
 
   const openDetail = (b: BikeItem) => { setActiveBike(b); setDrawerOpen(true) }
   void live
@@ -102,7 +102,7 @@ export default function Beranda() {
             <div className="mt-3 rounded-[20px] overflow-hidden bg-white text-zinc-900">
               <div className="relative h-[210px] overflow-hidden">
                 <img src={bikes[0].gambar} alt={bikes[0].nama} className="w-full h-full object-cover group-hover:scale-[1.03] transition duration-500" loading="eager" />
-                <span className="absolute top-3 left-3 bg-emerald-600 text-white text-xs font-extrabold px-2.5 py-1 rounded-full">Gunung • Stok {stokOf(bikes[0])} unit</span>
+                <span className="absolute top-3 left-3 bg-emerald-600 text-white text-xs font-extrabold px-2.5 py-1 rounded-full">Gunung • Stok {availOf(bikes[0].id)} unit</span>
               </div>
               <div className="p-4">
                 <div className="font-extrabold leading-none">{bikes[0].nama}</div>
@@ -233,16 +233,16 @@ export default function Beranda() {
         ) : (
           <motion.div layout className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {filtered.map((b, idx) => (
-              <motion.div key={b.id} layout initial={reduce ? {} : { opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: idx * 0.04 }} whileHover={{ y: -4 }} className={`group bg-white dark:bg-zinc-800 rounded-[24px] overflow-hidden border border-zinc-100 dark:border-zinc-700 shadow-sm hover:shadow-lg transition flex flex-col ${b.status !== 'Tersedia' ? 'opacity-60' : ''}`}>
+              <motion.div key={b.id} layout initial={reduce ? {} : { opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: idx * 0.04 }} whileHover={{ y: -4 }} className={`group bg-white dark:bg-zinc-800 rounded-[24px] overflow-hidden border border-zinc-100 dark:border-zinc-700 shadow-sm hover:shadow-lg transition flex flex-col ${!isAvailable(b.id) ? 'opacity-60' : ''}`}>
                 <div className="relative h-[190px] overflow-hidden">
                   <img src={b.gambar} alt={b.nama} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" loading="lazy" />
-                  <span className={`absolute top-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-full ${b.status === 'Tersedia' ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>{b.status} • {stokOf(b)} unit</span>
+                  <span className={`absolute top-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-full ${isAvailable(b.id) ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>{isAvailable(b.id) ? 'Tersedia' : 'Sedang Disewa'} • {availOf(b.id)} unit</span>
                   <span className="absolute top-3 right-3 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white/90 backdrop-blur text-zinc-700">{b.jenis}</span>
                   <button onClick={() => toggleWish(b.id)} aria-label="Wishlist" className={`absolute bottom-3 right-3 w-8 h-8 rounded-full grid place-items-center shadow border ${wish.has(b.id) ? 'bg-rose-500 text-white border-rose-500' : 'bg-white/90 backdrop-blur border-zinc-200 text-zinc-700'}`}>
                     <HeartIcon className={`w-4 h-4 ${wish.has(b.id) ? 'fill-white' : ''}`} />
                   </button>
                   <span className="absolute bottom-3 left-3 text-[11px] font-medium px-2.5 py-1 rounded-full bg-zinc-900/80 text-white flex items-center gap-1"><Users className="w-3 h-3" /> {b.kapasitas.split('•')[0].trim()}</span>
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-200 dark:bg-zinc-700"><div className="h-full bg-emerald-500 transition-all" style={{ width: `${(stokOf(b) / 6) * 100}%` }} /></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-200 dark:bg-zinc-700"><div className="h-full bg-emerald-500 transition-all" style={{ width: `${(availOf(b.id) / 13) * 100}%` }} /></div>
                 </div>
                 <div className="p-4 flex-1 flex flex-col">
                   <div className="flex items-start justify-between gap-2">
@@ -256,7 +256,7 @@ export default function Beranda() {
                   </div>
                   <div className="grid grid-cols-2 gap-2 mt-4">
                     <button onClick={() => openDetail(b)} className="py-2.5 rounded-full border border-zinc-200 dark:border-zinc-600 font-semibold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-700 transition inline-flex items-center justify-center gap-1"><Eye className="w-4 h-4" /> Detail</button>
-                    <button onClick={() => addCart(b.id)} disabled={b.status !== 'Tersedia'} className="py-2.5 rounded-full bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition inline-flex items-center justify-center gap-1"><ShoppingBag className="w-4 h-4" /> Tambah</button>
+                    <button onClick={() => addCart(b.id)} disabled={!isAvailable(b.id)} className="py-2.5 rounded-full bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition inline-flex items-center justify-center gap-1"><ShoppingBag className="w-4 h-4" /> Tambah</button>
                   </div>
                 </div>
               </motion.div>

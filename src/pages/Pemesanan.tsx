@@ -1,12 +1,12 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ShoppingBag, Plus, Minus, Trash2, ArrowLeft, ArrowRight, ShieldCheck, Clock } from 'lucide-react'
-import { bikes, fmt, stokOf, waLink } from '../data'
+import { bikes, fmt, waLink, PACKAGES, packageById } from '../data'
 import { useShop } from '../store'
 import BookingForm, { type BookingInit } from '../components/BookingForm'
 
 export default function Pemesanan() {
-  const { cart, setCart, cartTotal, cartCount, addCart } = useShop()
+  const { cart, setCart, cartTotal, cartCount, addCart, availOf, isAvailable } = useShop()
   const loc = useLocation()
   const nav = useNavigate()
   const init = (loc.state as BookingInit | null) || undefined
@@ -43,7 +43,7 @@ export default function Pemesanan() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-extrabold text-sm truncate">{b.nama}</span>
-                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0 ${b.status === 'Tersedia' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-700'}`}>{stokOf(b)} unit</span>
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0 ${isAvailable(b.id) ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-700'}`}>{availOf(b.id)} unit</span>
                 </div>
                 <div className="text-xs text-zinc-500 mt-0.5">{b.kapasitas}</div>
                 <div className="flex items-center justify-between mt-2">
@@ -51,7 +51,7 @@ export default function Pemesanan() {
                   {inCart > 0 ? (
                     <span className="text-xs font-bold bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 px-3 py-1.5 rounded-full">{inCart} di keranjang ✓</span>
                   ) : (
-                    <button onClick={() => addCart(b.id)} disabled={b.status !== 'Tersedia'} className="text-xs font-extrabold bg-emerald-600 text-white px-4 py-1.5 rounded-full hover:bg-emerald-700 disabled:opacity-40">Tambah</button>
+                    <button onClick={() => addCart(b.id)} disabled={!isAvailable(b.id)} className="text-xs font-extrabold bg-emerald-600 text-white px-4 py-1.5 rounded-full hover:bg-emerald-700 disabled:opacity-40">Tambah</button>
                   )}
                 </div>
               </div>
@@ -79,13 +79,13 @@ export default function Pemesanan() {
                       <img src={b.gambar} alt={b.nama} className="w-16 h-16 rounded-xl object-cover shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-extrabold truncate">{b.nama}</div>
-                        <div className="text-xs text-zinc-500">{fmt(b.hargaJam)}/jam • {c.durasi} jam</div>
+                        <div className="text-xs text-zinc-500">{packageById(c.paket).label} • {fmt(packageById(c.paket).price)}</div>
                         <div className="flex items-center gap-2 mt-2">
-                          <button onClick={() => setCart(v => v.map(x => x.id === c.id ? { ...x, qty: Math.max(1, x.qty - 1) } : x))} aria-label="Kurangi" className="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center"><Minus className="w-3 h-3" /></button>
+                          <button onClick={() => setCart(v => v.map(x => x.id === c.id && x.paket === c.paket ? { ...x, qty: Math.max(1, x.qty - 1) } : x))} aria-label="Kurangi" className="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center"><Minus className="w-3 h-3" /></button>
                           <span className="text-sm font-extrabold w-8 text-center">{c.qty}</span>
-                          <button onClick={() => setCart(v => v.map(x => x.id === c.id ? { ...x, qty: Math.min(6, x.qty + 1) } : x))} aria-label="Tambah" className="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center"><Plus className="w-3 h-3" /></button>
-                          <select value={c.durasi} onChange={e => setCart(v => v.map(x => x.id === c.id ? { ...x, durasi: Number(e.target.value) } : x))} aria-label="Durasi" className="ml-auto text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-full px-2 py-1">
-                            {[1, 2, 3, 4, 6, 8, 12, 24].map(h => <option key={h} value={h}>{h} jam</option>)}
+                          <button onClick={() => setCart(v => v.map(x => x.id === c.id && x.paket === c.paket ? { ...x, qty: Math.min(6, x.qty + 1) } : x))} aria-label="Tambah" className="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center"><Plus className="w-3 h-3" /></button>
+                          <select value={c.paket} onChange={e => setCart(v => v.map(x => x.id === c.id && x.paket === c.paket ? { ...x, paket: e.target.value } : x))} aria-label="Paket" className="ml-auto text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-full px-2 py-1 max-w-[110px]">
+                            {PACKAGES.map(p => <option key={p.id} value={p.id}>{p.label} • {fmt(p.price)}</option>)}
                           </select>
                         </div>
                       </div>

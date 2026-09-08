@@ -4,6 +4,8 @@ import { ShopProvider } from './store'
 import { Header, Footer, Toasts, BottomNav, FloatingCartBar, CartSheet, FloatingWA } from './components/chrome'
 import Beranda from './pages/Beranda'
 import Pemesanan from './pages/Pemesanan'
+import Login from './pages/Login'
+import Admin from './pages/Admin'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -22,6 +24,8 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Beranda />} />
               <Route path="/pemesanan" element={<Pemesanan />} />
+              <Route path="/admin/login" element={<Login />} />
+              <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<Beranda />} />
             </Routes>
           </main>
