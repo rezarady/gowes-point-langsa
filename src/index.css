@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Tailwind v4: custom theme via CSS variables */
+:root {
+  --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Fraunces', serif;
+  --brand: #4d7c0f;
+  --brand-deep: #3a5f0b;
+  --paper: #fcf9ee;
+}
+* { scroll-behavior: smooth; }
+html { scrollbar-gutter: stable; }
+body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: #a7f3d0; border-radius: 999px; }
+::-webkit-scrollbar-track { background: transparent; }
+:focus-visible { outline: 2px solid #059669; outline-offset: 2px; }
